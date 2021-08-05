@@ -3,6 +3,7 @@ package limit
 import (
 	"context"
 	"encoding/json"
+	"log"
 	"sync"
 	"time"
 
@@ -26,6 +27,13 @@ type RateLimiterRedisStoreConfig struct {
 	RedisClient *redis.Client
 }
 
+// var (
+// 	// ErrRateLimitExceeded denotes an error raised when rate limit is exceeded
+// 	ErrRateLimitExceeded = error(http.StatusTooManyRequests, "rate limit exceeded")
+// 	// ErrExtractorError denotes an error raised when extractor function is unsuccessful
+// 	ErrExtractorError = echo.NewHTTPError(http.StatusForbidden, "error while extracting identifier")
+// )
+
 type Visitor struct {
 	*rate.Limiter
 	lastSeen time.Time
@@ -35,15 +43,16 @@ func (store *RateLimiterRedisStore) getVisitorsByIdentifier(identifier string) (
 	return nil, false
 }
 
-func (store *RateLimiterRedisStore) saveVisitor(ctx context.Context, key string, value interface{}, expiration time.Duration) {
+func (store *RateLimiterRedisStore) saveVisitor(ctx context.Context, key string, value interface{}) {
 	marshalledValue, err := json.Marshal(value)
 	if err != nil {
-		//		c.logger.Error(err)
+		log.Fatal(err)
 		return
 	}
 
 	err = store.db.HSet(ctx, "rate_limit", key, marshalledValue).Err()
 	if err != nil {
+		log.Fatal(err)
 		//c.logger.Error(err)
 	}
 }
@@ -54,7 +63,7 @@ func (store *RateLimiterRedisStore) Allow(identifier string) (bool, error) {
 	if !exists {
 		limiter = new(Visitor)
 		limiter.Limiter = rate.NewLimiter(store.rate, store.burst)
-		store.saveVisitor(context.Background(), identifier, limiter, time.Duration(limiter.Limit()))
+		store.saveVisitor(context.Background(), identifier, limiter)
 	}
 	limiter.lastSeen = now()
 	if now().Sub(store.lastCleanup) > store.expiresIn {
@@ -73,6 +82,7 @@ func NewRedisLimitStore(config RateLimiterRedisStoreConfig) (store *RateLimiterR
 	store.burst = config.Burst
 	store.rate = config.Rate
 	store.expiresIn = config.ExpiresIn
+	store.db = config.RedisClient
 
 	if config.Burst == 0 {
 		store.burst = int(config.Rate)
