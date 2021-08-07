@@ -32,9 +32,8 @@ func RateLimitConfig() middleware.RateLimiterConfig {
 		Password: "secret",
 	})
 	rdConf := &limit.RateLimiterRedisStoreConfig{
-		Rate:        10,
-		Burst:       15,
-		ExpiresIn:   10 * time.Second,
+		Rate:        100,
+		ExpiresIn:   30 * time.Second,
 		RedisClient: rdb,
 	}
 	config := middleware.RateLimiterConfig{
