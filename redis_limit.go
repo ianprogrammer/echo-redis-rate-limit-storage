@@ -1,4 +1,4 @@
-package redis_rate_limit
+package echo_redis_rate_limit
 
 import (
 	"context"
