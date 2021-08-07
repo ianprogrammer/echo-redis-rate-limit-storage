@@ -1,4 +1,4 @@
-package limit
+package redis_rate_limit
 
 import (
 	"context"
