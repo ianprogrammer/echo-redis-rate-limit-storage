@@ -26,7 +26,7 @@ const (
 	rate_limit_prefix_key = "rate_limit"
 )
 
-func (store *RateLimiterRedisStore) Incr(identifier string) error {
+func (store *RateLimiterRedisStore) incr(identifier string) error {
 	return store.db.IncrBy(context.Background(), rate_limit_prefix_key+identifier, 1).Err()
 }
 
@@ -68,7 +68,7 @@ func (store *RateLimiterRedisStore) Allow(identifier string) (bool, error) {
 	}
 
 	if limiter <= int(store.rate) {
-		err = store.Incr(identifier)
+		err = store.incr(identifier)
 		if err != nil {
 			return false, err
 		}
