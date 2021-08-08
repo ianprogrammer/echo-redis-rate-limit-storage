@@ -59,7 +59,7 @@ func RateLimitConfig() middleware.RateLimiterConfig {
 	}
 	config := middleware.RateLimiterConfig{
 		Skipper: middleware.DefaultSkipper,
-		Store:   echo_redis_rate_limit.NewRedisLimitStore(*rdConf),
+		Store:   echo_redis_rate_limit.NewRedisLimitStore(context.Background(),*rdConf),
 		IdentifierExtractor: func(ctx echo.Context) (string, error) {
 			id := ctx.RealIP()
 			return id, nil
