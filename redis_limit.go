@@ -29,7 +29,7 @@ const (
 )
 
 func (store *RateLimiterRedisStore) incr(ctx context.Context, identifier string) error {
-	return store.db.IncrBy(context, rate_limit_prefix_key+identifier, 1).Err()
+	return store.db.IncrBy(ctx, rate_limit_prefix_key+identifier, 1).Err()
 }
 
 func (store *RateLimiterRedisStore) getVisitorsByIdentifier(ctx context.Context, identifier string) (int, bool, error) {
@@ -57,6 +57,11 @@ func (store *RateLimiterRedisStore) Allow(identifier string) (bool, error) {
 	store.mutex.Lock()
 	allow := false
 	ctx := context.Background()
+
+	if store.ctx != nil {
+		ctx = store.ctx
+	}
+
 	limiter, exists, err := store.getVisitorsByIdentifier(ctx, identifier)
 
 	if err != nil {
