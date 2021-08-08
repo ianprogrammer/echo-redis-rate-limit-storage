@@ -1,3 +1,4 @@
+// Package provide the redis rate limiter storage
 package echo_redis_rate_limit
 
 import (
@@ -15,6 +16,7 @@ type RateLimiterRedisStore struct {
 	rate      rate.Limit
 	expiresIn time.Duration
 	db        *redis.Client
+	ctx       context.Context
 }
 type RateLimiterRedisStoreConfig struct {
 	Rate        rate.Limit    // Rate of requests allowed to pass as req/s
@@ -26,12 +28,12 @@ const (
 	rate_limit_prefix_key = "rate_limit"
 )
 
-func (store *RateLimiterRedisStore) incr(identifier string) error {
-	return store.db.IncrBy(context.Background(), rate_limit_prefix_key+identifier, 1).Err()
+func (store *RateLimiterRedisStore) incr(ctx context.Context, identifier string) error {
+	return store.db.IncrBy(context, rate_limit_prefix_key+identifier, 1).Err()
 }
 
-func (store *RateLimiterRedisStore) getVisitorsByIdentifier(identifier string) (int, bool, error) {
-	val, err := store.db.Get(context.Background(), rate_limit_prefix_key+identifier).Result()
+func (store *RateLimiterRedisStore) getVisitorsByIdentifier(ctx context.Context, identifier string) (int, bool, error) {
+	val, err := store.db.Get(ctx, rate_limit_prefix_key+identifier).Result()
 
 	if err == redis.Nil {
 		return 0, false, nil
@@ -54,21 +56,22 @@ func (store *RateLimiterRedisStore) saveVisitor(ctx context.Context, key string,
 func (store *RateLimiterRedisStore) Allow(identifier string) (bool, error) {
 	store.mutex.Lock()
 	allow := false
-	limiter, exists, err := store.getVisitorsByIdentifier(identifier)
+	ctx := context.Background()
+	limiter, exists, err := store.getVisitorsByIdentifier(ctx, identifier)
 
 	if err != nil {
 		return false, err
 	}
 
 	if !exists {
-		err = store.saveVisitor(context.Background(), identifier, 0, store.expiresIn)
+		err = store.saveVisitor(ctx, identifier, 0, store.expiresIn)
 		if err != nil {
 			return false, err
 		}
 	}
 
 	if limiter <= int(store.rate) {
-		err = store.incr(identifier)
+		err = store.incr(ctx, identifier)
 		if err != nil {
 			return false, err
 		}
@@ -79,10 +82,11 @@ func (store *RateLimiterRedisStore) Allow(identifier string) (bool, error) {
 	return allow, nil
 }
 
-func NewRedisLimitStore(config RateLimiterRedisStoreConfig) (store *RateLimiterRedisStore) {
+func NewRedisLimitStore(ctx context.Context, config RateLimiterRedisStoreConfig) (store *RateLimiterRedisStore) {
 	return &RateLimiterRedisStore{
 		rate:      config.Rate,
 		expiresIn: config.ExpiresIn,
 		db:        config.RedisClient,
+		ctx:       ctx,
 	}
 }
