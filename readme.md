@@ -10,7 +10,7 @@ This package  requires a Go version with modules support, make sure you have ini
 go mod init github.com/user/project
 ```
 
-After then install echo_redis_rate_limit
+After that install echo_redis_rate_limit
 
 ```
 go get github.com/ianprogrammer/echo-redis-rate-limit-storage
