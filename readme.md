@@ -67,7 +67,7 @@ func RateLimitConfig() middleware.RateLimiterConfig {
 		ErrorHandler: func(context echo.Context, err error) error {
 			return &echo.HTTPError{
 				Code:     http.StatusForbidden,
-				Message:  "Nãp",
+				Message:  "error",
 				Internal: err,
 			}
 		},
